@@ -1,2 +1,2 @@
 <?php
-echo 'Not found';
+loadView('error/404');
