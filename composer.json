@@ -1,0 +1,16 @@
+{
+  "name": "imseifahmed/workopia-php",
+  "description": "Job listing application",
+  "authors": [
+    {
+      "name": "Seif Ahmed",
+      "email": "info@seifahmed.com"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "Framework\\": "Framework/",
+      "App\\": "Framework/"
+    }
+  }
+}
