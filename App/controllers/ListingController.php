@@ -4,6 +4,8 @@ namespace App\Controllers;
 
 use Framework\Database;
 use Framework\Validation;
+use Framework\Session;
+use Framework\Authorization;
 
 class ListingController
 {
@@ -22,7 +24,8 @@ class ListingController
      */
     public function index()
     {
-        $listings = $this->db->query('SELECT * FROM listings')->fetchAll();
+        $listings = $this->db->query('SELECT * FROM listings ORDER BY created_at DESC')->fetchAll();
+
         loadView('listings/index', [
             'listings' => $listings
         ]);
@@ -66,7 +69,7 @@ class ListingController
     }
 
     /**
-     * Store data in Database
+     * Store data in database
      * 
      * @return void
      */
@@ -76,15 +79,15 @@ class ListingController
 
         $newListingData = array_intersect_key($_POST, array_flip($allowedFields));
 
-        $newListingData['user_id'] = 1;
+        $newListingData['user_id'] = Session::get('user')['id'];
 
         $newListingData = array_map('sanitize', $newListingData);
 
-        $requireFields = ['title', 'description', 'salary', 'email', 'city', 'state'];
+        $requiredFields = ['title', 'description', 'salary', 'email', 'city', 'state'];
 
         $errors = [];
 
-        foreach ($requireFields as $field) {
+        foreach ($requiredFields as $field) {
             if (empty($newListingData[$field]) || !Validation::string($newListingData[$field])) {
                 $errors[$field] = ucfirst($field) . ' is required';
             }
@@ -98,9 +101,8 @@ class ListingController
             ]);
         } else {
             // Submit data
-            echo 'Success';
-
             $fields = [];
+
             foreach ($newListingData as $field => $value) {
                 $fields[] = $field;
             }
@@ -119,7 +121,7 @@ class ListingController
 
             $values = implode(', ', $values);
 
-            $query = "INSERT INTO listings({$fields}) VALUES({$values})";
+            $query = "INSERT INTO listings ({$fields}) VALUES ({$values})";
 
             $this->db->query($query, $newListingData);
 
@@ -143,9 +145,16 @@ class ListingController
 
         $listing = $this->db->query('SELECT * FROM listings WHERE id = :id', $params)->fetch();
 
+        // Check if listing exists
         if (!$listing) {
             ErrorController::notFound('Listing not found');
             return;
+        }
+
+        // Authorization
+        if (!Authorization::isOwner($listing->user_id)) {
+            $_SESSION['error_message'] = 'You are not authoirzed to delete this listing';
+            return redirect('/listings/' . $listing->id);
         }
 
         $this->db->query('DELETE FROM listings WHERE id = :id', $params);
